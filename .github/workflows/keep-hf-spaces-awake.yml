@@ -14,7 +14,7 @@ jobs:
       matrix:
         url:
           - https://vinceluv-123.hf.space/
-          # 可以继续添加更多 Space URL
+          # 可继续添加更多 Space URL
 
     steps:
       - name: Install Node and Playwright
@@ -31,7 +31,7 @@ jobs:
           success=true
           summary="### Keep HF Spaces Awake Result for ${{ matrix.url }}\n\n"
 
-          # 用 bash 提取 URL 最后部分作为文件名
+          # 用 Bash 提取 URL 最后一部分作为文件名
           url_name=$(basename "${{ matrix.url }}")
           screenshot_file="screenshot-${url_name}.png"
 
@@ -46,17 +46,17 @@ jobs:
               echo "✅ Request to $full_url succeeded"
               summary="$summary✅ Request to $full_url succeeded\n"
 
-              # 使用 Playwright 截图
+              # Playwright 截图，确保 EOF 在行首
               node - <<EOF
-              const { chromium } = require('playwright');
-              (async () => {
-                const browser = await chromium.launch();
-                const page = await browser.newPage();
-                await page.goto("$full_url", { waitUntil: "networkidle" });
-                await page.screenshot({ path: "$screenshot_file", fullPage: true });
-                await browser.close();
-              })();
-              EOF
+const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto("$full_url", { waitUntil: "networkidle" });
+  await page.screenshot({ path: "$screenshot_file", fullPage: true });
+  await browser.close();
+})();
+EOF
 
               # 在 summary 中嵌入缩略图（宽度400px）
               summary="$summary\n<img src=\"$screenshot_file\" width=\"400px\" />\n"
