@@ -1,74 +1,10 @@
-name: Keep HF Spaces Awake
+name: Test Workflow Dispatch
 
 on:
-  schedule:
-    - cron: "0 */4 * * *"
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
-  ping:
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        url:
-          - https://vinceluv-123.hf.space/
-          # 可继续添加更多 Space URL
-
     steps:
-      - name: Install Node and Playwright
-        run: |
-          sudo apt update
-          sudo apt install -y npm
-          npm init -y
-          npm install playwright@latest
-          npx playwright install --with-deps chromium
-
-      - name: Ping and Screenshot ${{ matrix.url }}
-        run: |
-          set -u
-          success=true
-          summary="### Keep HF Spaces Awake Result for ${{ matrix.url }}\n\n"
-
-          # 用 Bash 提取 URL 最后一部分作为文件名
-          url_name=$(basename "${{ matrix.url }}")
-          screenshot_file="screenshot-${url_name}.png"
-
-          for path in "/" "/?__theme=light"; do
-            full_url="${{ matrix.url }}$path"
-            if ! curl -A "keepalive-bot/1.0" -sSL --fail --max-time 60 --retry 3 --retry-delay 5 "$full_url" > /dev/null; then
-              echo "❌ Request to $full_url failed"
-              summary="$summary❌ Request to $full_url failed\n"
-              success=false
-              break
-            else
-              echo "✅ Request to $full_url succeeded"
-              summary="$summary✅ Request to $full_url succeeded\n"
-
-              # Playwright 截图，确保 EOF 在行首
-              node - <<EOF
-const { chromium } = require('playwright');
-(async () => {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.goto("$full_url", { waitUntil: "networkidle" });
-  await page.screenshot({ path: "$screenshot_file", fullPage: true });
-  await browser.close();
-})();
-EOF
-
-              # 在 summary 中嵌入缩略图（宽度400px）
-              summary="$summary\n<img src=\"$screenshot_file\" width=\"400px\" />\n"
-            fi
-          done
-
-          # 输出最终 summary
-          if [ "$success" = true ]; then
-            summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
-            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
-          else
-            summary="$summary\n**Final Result:** ❌ Some requests failed\n"
-            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
+      - run: echo "Workflow works!"
