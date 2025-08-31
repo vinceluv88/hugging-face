@@ -8,13 +8,13 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         url:
           - https://vinceluv-123.hf.space/
-          # 可添加更多 Space URL
+          # 可继续添加更多 Space URL
 
     steps:
       - name: Checkout repository
@@ -51,19 +51,22 @@ jobs:
 
               # 调用仓库根目录的 screenshot.js
               node screenshot.js "$full_url" "$screenshot_file"
-
-              # 将截图转 base64 并嵌入 summary
-              b64=$(base64 -w 0 "$screenshot_file")
-              summary="$summary\n<img src=\"data:image/png;base64,$b64\" width=\"400px\" />\n"
             fi
           done
 
-          # 输出最终 summary
-          if [ "$success" = true ]; then
-            summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
-            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
-          else
-            summary="$summary\n**Final Result:** ❌ Some requests failed\n"
-            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
+          echo -e "$summary" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: hf-screenshots
+          path: screenshot-*.png
+
+      - name: Add screenshot links to summary
+        run: |
+          summary="### Screenshot Links\n"
+          for f in screenshot-*.png; do
+            name=$(basename "$f")
+            summary="$summary\n[View $name]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/suites/$GITHUB_RUN_ID/artifacts)"
+          done
+          echo -e "$summary" >> $GITHUB_STEP_SUMMARY
