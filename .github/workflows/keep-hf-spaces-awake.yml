@@ -3,7 +3,7 @@ name: Keep HF Spaces Awake
 on:
   schedule:
     - cron: "0 */4 * * *"
-  workflow_dispatch:
+  workflow_dispatch: {}   # 明确空对象
 
 jobs:
   ping:
@@ -14,7 +14,6 @@ jobs:
       matrix:
         url:
           - https://vinceluv-123.hf.space/
-          # 可继续添加更多 Space URL
 
     steps:
       - name: Install Node and Playwright
@@ -30,8 +29,6 @@ jobs:
           set -u
           success=true
           summary="### Keep HF Spaces Awake Result for ${{ matrix.url }}\n\n"
-
-          # 用 Bash 提取 URL 最后一部分作为文件名
           url_name=$(basename "${{ matrix.url }}")
           screenshot_file="screenshot-${url_name}.png"
 
@@ -46,7 +43,6 @@ jobs:
               echo "✅ Request to $full_url succeeded"
               summary="$summary✅ Request to $full_url succeeded\n"
 
-              # Playwright 截图，确保 EOF 在行首
               node - <<EOF
 const { chromium } = require('playwright');
 (async () => {
@@ -58,12 +54,10 @@ const { chromium } = require('playwright');
 })();
 EOF
 
-              # 在 summary 中嵌入缩略图（宽度400px）
               summary="$summary\n<img src=\"$screenshot_file\" width=\"400px\" />\n"
             fi
           done
 
-          # 输出最终 summary
           if [ "$success" = true ]; then
             summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
             echo -e "$summary" >> $GITHUB_STEP_SUMMARY
