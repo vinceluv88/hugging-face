@@ -14,10 +14,13 @@ jobs:
       matrix:
         url:
           - https://vinceluv-123.hf.space/
+          # 可以继续添加更多 Space URL
 
     steps:
-      - name: Install Playwright
+      - name: Install Node and Playwright
         run: |
+          sudo apt update
+          sudo apt install -y npm
           npm init -y
           npm install playwright@latest
           npx playwright install --with-deps chromium
@@ -27,6 +30,10 @@ jobs:
           set -u
           success=true
           summary="### Keep HF Spaces Awake Result for ${{ matrix.url }}\n\n"
+
+          # 用 bash 提取 URL 最后部分作为文件名
+          url_name=$(basename "${{ matrix.url }}")
+          screenshot_file="screenshot-${url_name}.png"
 
           for path in "/" "/?__theme=light"; do
             full_url="${{ matrix.url }}$path"
@@ -39,8 +46,7 @@ jobs:
               echo "✅ Request to $full_url succeeded"
               summary="$summary✅ Request to $full_url succeeded\n"
 
-              # 截图保存
-              screenshot_file="screenshot-${{ matrix.url##*/}}.png"
+              # 使用 Playwright 截图
               node - <<EOF
               const { chromium } = require('playwright');
               (async () => {
@@ -57,6 +63,7 @@ jobs:
             fi
           done
 
+          # 输出最终 summary
           if [ "$success" = true ]; then
             summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
             echo -e "$summary" >> $GITHUB_STEP_SUMMARY
