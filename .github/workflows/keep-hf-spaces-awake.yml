@@ -1,0 +1,26 @@
+name: Keep HF Spaces Awake
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"   # every 4 hours (GitHub Actions uses UTC)
+  workflow_dispatch:        # lets you run it manually anytime
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        url:
+          # App endpoints (the ones that actually keep the Space alive)
+          - https://vinceluv-123.hf.space/
+
+    steps:
+      - name: Ping ${{ matrix.url }}
+        run: |
+          set -eux
+          # A couple of hits to be safe (root + a variant query)
+          for path in "/" "/?__theme=light"; do
+            curl -A "keepalive-bot/1.0" -sSL --fail --max-time 60 --retry 3 --retry-delay 5 "${{ matrix.url }}$path" > /dev/null
+          done
