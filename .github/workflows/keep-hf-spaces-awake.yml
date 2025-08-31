@@ -1,80 +1,44 @@
 name: Keep HF Spaces Awake
 
 on:
-  workflow_dispatch: {}       # 手动触发按钮
   schedule:
-    - cron: "0 */4 * * *"    # 每 4 小时自动触发
+    - cron: "0 */4 * * *"   # every 4 hours (GitHub Actions uses UTC)
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         url:
           - https://vinceluv-123.hf.space/
-          # 可添加更多 Space URL
 
     steps:
-      # 1️⃣ Checkout 仓库，确保 screenshot.js 可用
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 2️⃣ 安装 Node 和 Playwright
-      - name: Install Node and Playwright
-        run: |
-          sudo apt update
-          sudo apt install -y npm
-          npm init -y
-          npm install playwright@latest
-          npx playwright install --with-deps chromium
-
-      # 3️⃣ Ping URL 并截图
-      - name: Ping and Screenshot ${{ matrix.url }}
+      - name: Ping ${{ matrix.url }}
         run: |
           set -u
           success=true
-          summary="### Keep HF Spaces Awake Result for ${{ matrix.url }}\n\n"
-
-          # 将 URL 转成安全 artifact 名称
-          safe_name=$(echo "${{ matrix.url }}" | sed 's|[:/]|-|g')
-
-          url_name=$(basename "${{ matrix.url }}")
-          screenshot_file="screenshot-${url_name}.png"
+          summary="### Keep HF Spaces Awake Result\n\n"
 
           for path in "/" "/?__theme=light"; do
-            full_url="${{ matrix.url }}$path"
-
-            if ! curl -A "keepalive-bot/1.0" -sSL --fail --max-time 60 --retry 3 --retry-delay 5 "$full_url" > /dev/null; then
-              echo "❌ Request to $full_url failed"
-              summary="$summary❌ Request to $full_url failed\n"
+            if ! curl -A "keepalive-bot/1.0" -sSL --fail --max-time 60 --retry 3 --retry-delay 5 "${{ matrix.url }}$path" > /dev/null; then
+              echo "❌ Request to ${{ matrix.url }}$path failed"
+              summary="$summary❌ Request to ${{ matrix.url }}$path failed\n"
               success=false
               break
             else
-              echo "✅ Request to $full_url succeeded"
-              summary="$summary✅ Request to $full_url succeeded\n"
-              # 调用仓库根目录的 screenshot.js
-              node screenshot.js "$full_url" "$screenshot_file"
+              echo "✅ Request to ${{ matrix.url }}$path succeeded"
+              summary="$summary✅ Request to ${{ matrix.url }}$path succeeded\n"
             fi
           done
 
-          echo -e "$summary" >> $GITHUB_STEP_SUMMARY
-
-      # 4️⃣ 上传截图为 artifact
-      - name: Upload screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: hf-screenshots-${{ matrix.url }}
-          path: screenshot-*.png
-
-      # 5️⃣ 在 summary 中生成可点击链接
-      - name: Add screenshot links to summary
-        run: |
-          safe_name=$(echo "${{ matrix.url }}" | sed 's|[:/]|-|g')
-          summary="### Screenshot Links\n"
-          for f in screenshot-*.png; do
-            name=$(basename "$f")
-            summary="$summary\n[View $name](https://github.com/${GITHUB_REPOSITORY}/suites/${GITHUB_RUN_ID}/artifacts)"
-          done
-          echo -e "$summary" >> $GITHUB_STEP_SUMMARY
+          if [ "$success" = true ]; then
+            summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
+            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
+          else
+            summary="$summary\n**Final Result:** ❌ Some requests failed\n"
+            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
