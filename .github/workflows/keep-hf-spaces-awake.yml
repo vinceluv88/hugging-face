@@ -52,11 +52,13 @@ jobs:
               # 调用仓库根目录的 screenshot.js
               node screenshot.js "$full_url" "$screenshot_file"
 
-              # 在 summary 中嵌入缩略图（宽度400px）
-              summary="$summary\n<img src=\"$screenshot_file\" width=\"400px\" />\n"
+              # 将截图转 base64 并嵌入 summary
+              b64=$(base64 -w 0 "$screenshot_file")
+              summary="$summary\n<img src=\"data:image/png;base64,$b64\" width=\"400px\" />\n"
             fi
           done
 
+          # 输出最终 summary
           if [ "$success" = true ]; then
             summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
             echo -e "$summary" >> $GITHUB_STEP_SUMMARY
