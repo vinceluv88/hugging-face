@@ -1,9 +1,9 @@
 name: Keep HF Spaces Awake
 
 on:
-  workflow_dispatch: {}       # 手动触发按钮
+  workflow_dispatch: {}  # 手动触发按钮
   schedule:
-    - cron: "0 */4 * * *"    # 每 4 小时自动触发
+    - cron: "0 */4 * * *"  # 每 4 小时自动触发
 
 jobs:
   ping:
@@ -57,9 +57,9 @@ jobs:
           echo -e "$summary" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: hf-screenshots
+          name: hf-screenshots-${{ matrix.url }}
           path: screenshot-*.png
 
       - name: Add screenshot links to summary
