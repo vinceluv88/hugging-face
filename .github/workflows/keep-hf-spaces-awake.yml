@@ -14,12 +14,14 @@ jobs:
       matrix:
         url:
           - https://vinceluv-123.hf.space/
-          # 可继续添加更多 Space URL
+          # 可添加更多 Space URL
 
     steps:
+      # 1️⃣ Checkout 仓库，确保 screenshot.js 可用
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2️⃣ 安装 Node 和 Playwright
       - name: Install Node and Playwright
         run: |
           sudo apt update
@@ -28,6 +30,7 @@ jobs:
           npm install playwright@latest
           npx playwright install --with-deps chromium
 
+      # 3️⃣ Ping URL 并截图
       - name: Ping and Screenshot ${{ matrix.url }}
         run: |
           set -u
@@ -51,21 +54,23 @@ jobs:
             else
               echo "✅ Request to $full_url succeeded"
               summary="$summary✅ Request to $full_url succeeded\n"
+              # 调用仓库根目录的 screenshot.js
               node screenshot.js "$full_url" "$screenshot_file"
             fi
           done
 
           echo -e "$summary" >> $GITHUB_STEP_SUMMARY
 
+      # 4️⃣ 上传截图为 artifact
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: hf-screenshots-${{ matrix.url | replace(':','-') | replace('/','-') }}
+          name: hf-screenshots-${{ matrix.url }}
           path: screenshot-*.png
 
+      # 5️⃣ 在 summary 中生成可点击链接
       - name: Add screenshot links to summary
         run: |
-          # 将 URL 转成安全 artifact 名称
           safe_name=$(echo "${{ matrix.url }}" | sed 's|[:/]|-|g')
           summary="### Screenshot Links\n"
           for f in screenshot-*.png; do
