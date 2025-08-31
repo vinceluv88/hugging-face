@@ -2,7 +2,7 @@ name: Keep HF Spaces Awake
 
 on:
   schedule:
-    - cron: "0 */4 * * *"   # every 4 hours (GitHub Actions uses UTC)
+    - cron: "0 */4 * * *"
   workflow_dispatch:
 
 jobs:
@@ -16,21 +16,44 @@ jobs:
           - https://vinceluv-123.hf.space/
 
     steps:
-      - name: Ping ${{ matrix.url }}
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright@latest
+          npx playwright install --with-deps chromium
+
+      - name: Ping and Screenshot ${{ matrix.url }}
         run: |
           set -u
           success=true
-          summary="### Keep HF Spaces Awake Result\n\n"
+          summary="### Keep HF Spaces Awake Result for ${{ matrix.url }}\n\n"
 
           for path in "/" "/?__theme=light"; do
-            if ! curl -A "keepalive-bot/1.0" -sSL --fail --max-time 60 --retry 3 --retry-delay 5 "${{ matrix.url }}$path" > /dev/null; then
-              echo "❌ Request to ${{ matrix.url }}$path failed"
-              summary="$summary❌ Request to ${{ matrix.url }}$path failed\n"
+            full_url="${{ matrix.url }}$path"
+            if ! curl -A "keepalive-bot/1.0" -sSL --fail --max-time 60 --retry 3 --retry-delay 5 "$full_url" > /dev/null; then
+              echo "❌ Request to $full_url failed"
+              summary="$summary❌ Request to $full_url failed\n"
               success=false
               break
             else
-              echo "✅ Request to ${{ matrix.url }}$path succeeded"
-              summary="$summary✅ Request to ${{ matrix.url }}$path succeeded\n"
+              echo "✅ Request to $full_url succeeded"
+              summary="$summary✅ Request to $full_url succeeded\n"
+
+              # 截图保存
+              screenshot_file="screenshot-${{ matrix.url##*/}}.png"
+              node - <<EOF
+              const { chromium } = require('playwright');
+              (async () => {
+                const browser = await chromium.launch();
+                const page = await browser.newPage();
+                await page.goto("$full_url", { waitUntil: "networkidle" });
+                await page.screenshot({ path: "$screenshot_file", fullPage: true });
+                await browser.close();
+              })();
+              EOF
+
+              # 在 summary 中嵌入缩略图（宽度400px）
+              summary="$summary\n<img src=\"$screenshot_file\" width=\"400px\" />\n"
             fi
           done
 
