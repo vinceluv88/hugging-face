@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         url:
-          - https://vinceluv-456.hf.space/
+          - https://vinceluv-000.hf.space/
 
     steps:
       - name: Ping ${{ matrix.url }}
