@@ -17,6 +17,7 @@ jobs:
 
     steps:
       - name: Ping ${{ matrix.url }}
+        id: ping
         run: |
           set -u
           success=true
@@ -36,9 +37,21 @@ jobs:
 
           if [ "$success" = true ]; then
             summary="$summary\n**Final Result:** ✅ All requests succeeded\n"
-            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$summary" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
           else
             summary="$summary\n**Final Result:** ❌ Some requests failed\n"
-            echo -e "$summary" >> $GITHUB_STEP_SUMMARY
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$summary" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
             exit 1
           fi
+
+      - name: Send Telegram Notification
+        if: always()   # 无论成功失败都通知
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d parse_mode=Markdown \
+            -d text="${{ steps.ping.outputs.summary }}"
