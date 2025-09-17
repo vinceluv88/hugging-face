@@ -2,7 +2,7 @@ name: Keep HF Spaces Awake
 
 on:
   schedule:
-    - cron: "0 */4 * * *"   # every 4 hours (GitHub Actions uses UTC)
+    - cron: "0 */7 * * *"   # every7 hours (GitHub Actions uses UTC)
   workflow_dispatch:
 
 jobs:
